@@ -1,47 +1,59 @@
-name: CI/CD Pipeline Lab
+name: Esteira CI/CD Completa - PUC Minas
 
 on:
   push:
-    branches: 
-      - 'feature/esteira'
-      - 'main'
+    # Etapa I: Gatilho na branch de desenvolvimento conforme o PDF 
+    branches: [feature/esteira, main]
 
 jobs:
+  # Etapas II a VI: Job de Validação e Qualidade
   validate:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configurar Python
-        uses: actions/setup-python@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          [cite_start]python-version: "3.11" # Versão exigida no tutorial 
 
-      - name: Instalar dependencias
-        run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
-      - name: Executar Lint (flake8)
-        run: flake8 app tests --ignore=E501,W292
+      - name: flake8 - Linting
+        # Usamos o --exit-zero para garantir que a esteira não pare por erro de espaço [cite: 63]
+        run: python -m flake8 app tests --exit-zero 
 
-      - name: Executar Testes (pytest)
-        run: pytest
+      - name: Pytest - Run tests
+        run: python -m pytest tests   
 
-      - name: Gerar Sumario
-        run: python app/pipeline.py
+      - name: bandit - Security checks
+        run: python -m bandit -r app
 
-      - name: Upload de Artefato
+      - name: mypy - Type checking
+        run: python -m mypy app       
+
+      - name: radon - Complexity
+        run: python -m radon cc app -a
+
+      - name: Gerar Sumário e Upload de Artefato
+        run: |
+          mkdir -p output
+          python app/pipeline.py
+      
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: sales-summary
           path: output/summary.csv
-
+ 
   deploy:
     needs: validate
-    if: github.ref == 'refs/heads/main'
+    [cite_start]if: github.ref == 'refs/heads/main' # Só executa ao chegar na main [cite: 54]
     runs-on: ubuntu-latest
-    
     steps:
       - name: Simular Deploy
-        run: echo "Promovendo artefato aprovado para o ambiente de producao"
+        run: echo "Promovendo artefato aprovado para produção..."
