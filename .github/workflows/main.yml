@@ -1,0 +1,47 @@
+name: CI/CD Pipeline Lab
+
+on:
+  push:
+    branches: 
+      - 'feature/esteira'
+      - 'main'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Executar Lint (flake8)
+        run: flake8 app tests --ignore=E501
+
+      - name: Executar Testes (pytest)
+        run: pytest
+
+      - name: Gerar Sumario
+        run: python app/pipeline.py
+
+      - name: Upload de Artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: sales-summary
+          path: output/summary.csv
+
+  deploy:
+    needs: validate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Simular Deploy
+        run: echo "Promovendo artefato aprovado para o ambiente de producao"
